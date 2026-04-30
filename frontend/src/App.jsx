@@ -407,10 +407,79 @@ export default function App() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/5 mt-16 py-6 text-center text-xs text-gray-600">
-        Built with PyTorch · FastAPI · React · Deployed on Hugging Face Spaces
-        <br />
-        Based on Gatys et al., "A Neural Algorithm of Artistic Style" (2015)
+      <footer className="border-t border-white/5 mt-20">
+
+        {/* Tech stack cards */}
+        <div className="max-w-5xl mx-auto px-4 pt-10 pb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: "🧠", title: "AI Engine",    desc: "VGG-19 + PyTorch\nGram Matrix Optimization" },
+              { icon: "⚡", title: "Backend",      desc: "FastAPI + Uvicorn\nAsync Job Queue" },
+              { icon: "⚛️", title: "Frontend",    desc: "React 18 + Vite\nTailwindCSS" },
+              { icon: "☁️", title: "Cloud",        desc: "Hugging Face Spaces\nGoogle Colab GPU" },
+            ].map(({ icon, title, desc }) => (
+              <div key={title} className="flex flex-col items-center text-center gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                <span className="text-2xl">{icon}</span>
+                <p className="text-xs font-medium text-gray-300">{title}</p>
+                <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Gradient divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
+
+          {/* Links */}
+          <div className="flex flex-wrap justify-center gap-6 mb-8">
+            {[
+              { label: "GitHub",         href: "https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer", icon: "⭐" },
+              { label: "Live Demo",      href: "https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer", icon: "🌐" },
+              { label: "Colab Notebook", href: "https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb", icon: "📓" },
+              { label: "API Docs",       href: "http://localhost:8000/docs", icon: "📡" },
+              { label: "Original Paper", href: "https://arxiv.org/abs/1508.06576", icon: "📄" },
+            ].map(({ label, href, icon }) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-400 transition-colors">
+                <span>{icon}</span>{label}
+              </a>
+            ))}
+          </div>
+
+          {/* Gradient divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
+
+          {/* Research citation */}
+          <div className="text-center mb-8">
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              Based on{" "}
+              <a href="https://arxiv.org/abs/1508.06576" target="_blank" rel="noreferrer"
+                className="text-indigo-500/70 hover:text-indigo-400 transition-colors">
+                Gatys, Ecker & Bethge — "A Neural Algorithm of Artistic Style" (2015)
+              </a>
+              {" "}·{" "}
+              <a href="https://arxiv.org/abs/1409.1556" target="_blank" rel="noreferrer"
+                className="text-indigo-500/70 hover:text-indigo-400 transition-colors">
+                VGG-19 by Simonyan & Zisserman (2014)
+              </a>
+            </p>
+          </div>
+
+          {/* Made with love */}
+          <div className="text-center pb-10">
+            <p className="text-sm text-gray-500">
+              Made with{" "}
+              <span className="text-red-500 animate-pulse inline-block">❤️</span>
+              {" "}by{" "}
+              <a href="https://github.com/TUSHARTAMRAKAR" target="_blank" rel="noreferrer"
+                className="font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent hover:from-indigo-300 hover:to-purple-300 transition-all">
+                Tushar Tamrakar
+              </a>
+            </p>
+            <p className="text-[11px] text-gray-700 mt-2">
+              © {new Date().getFullYear()} Neural Style Transfer · MIT License
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );
