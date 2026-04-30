@@ -1,0 +1,65 @@
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# ── Virtual environments ───────────────────────
+venv/
+env/
+.env
+.venv
+
+# ── Environment variables ──────────────────────
+.env
+.env.local
+.env.production
+
+# ── Uploads & outputs (generated at runtime) ──
+backend/uploads/
+backend/outputs/
+!backend/uploads/.gitkeep
+!backend/outputs/.gitkeep
+
+# ── Style images (too large for git — download separately) ──
+# Uncomment if your style images are large:
+# backend/style_images/*.jpg
+# backend/style_images/*.png
+
+# ── PyTorch model cache ────────────────────────
+~/.cache/torch/
+*.pth
+*.pt
+
+# ── Node.js ───────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ── Editor ────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Jupyter ───────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Misc ──────────────────────────────────────
+*.log
+*.tmp
+.coverage
+htmlcov/

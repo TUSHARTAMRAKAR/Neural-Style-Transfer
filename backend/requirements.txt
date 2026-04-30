@@ -1,0 +1,20 @@
+# Neural Style Transfer — Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Core AI/ML ──────────────────────────────
+torch==2.2.0               # PyTorch — deep learning framework
+torchvision==0.17.0        # VGG-19 pretrained model + image transforms
+Pillow==10.2.0             # Image loading and saving
+
+# ── Web Framework ────────────────────────────
+fastapi==0.110.0           # Modern async web framework
+uvicorn[standard]==0.27.1  # ASGI server (runs FastAPI)
+python-multipart==0.0.9    # Required for file uploads in FastAPI
+
+# ── Utilities ────────────────────────────────
+pydantic==2.6.1            # Data validation (used by FastAPI)
+aiofiles==23.2.1           # Async file operations
+python-dotenv==1.0.1       # Load .env config files
+
+# ── For Hugging Face Spaces deployment ───────
+gradio==4.19.2             # Optional: Gradio UI wrapper for HF Spaces
