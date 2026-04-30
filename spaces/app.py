@@ -19,33 +19,27 @@ STYLES_DIR = Path("/tmp/nst_styles")
 OUTPUT_DIR.mkdir(exist_ok=True)
 STYLES_DIR.mkdir(exist_ok=True)
 
-# ── Use direct Wikipedia file URLs (not thumbnail URLs) ──────
+# ── Hosted on GitHub raw — 100% reliable, no rate limits ─────
+GITHUB_RAW = "https://raw.githubusercontent.com/TUSHARTAMRAKAR/Neural-Style-Transfer/main/docs/style_images"
+
 STYLE_URLS = {
-    "starry_night.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
-    "the_scream.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/c/c5/Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg",
-    "kandinsky.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/7/76/Vassily_Kandinsky%2C_1923_-_Composition_8%2C_huile_sur_toile%2C_140_cm_x_201_cm%2C_Mus%C3%A9e_Guggenheim%2C_New_York.jpg",
-    "mosaic.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/1/10/Meister_von_San_Vitale_in_Ravenna.jpg",
-    "wave.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/a/a5/Tsunami_by_hokusai_19th_century.jpg",
-    "udnie.jpg":
-        "https://upload.wikimedia.org/wikipedia/commons/a/ac/Francis_Picabia%2C_1913%2C_Udnie_%28Young_American_Girl%2C_The_Dance%29%2C_oil_on_canvas%2C_290_x_300_cm%2C_Mus%C3%A9e_National_d%27Art_Moderne%2C_Centre_Georges_Pompidou%2C_Paris.jpg",
+    "starry_night.jpg": f"{GITHUB_RAW}/starry_night.jpg",
+    "the_scream.jpg":   f"{GITHUB_RAW}/the_scream.jpg",
+    "kandinsky.jpg":    f"{GITHUB_RAW}/kandinsky.jpg",
+    "mosaic.jpg":       f"{GITHUB_RAW}/mosaic.jpg",
+    "wave.jpg":         f"{GITHUB_RAW}/wave.jpg",
+    "udnie.jpg":        f"{GITHUB_RAW}/udnie.jpg",
 }
 
 def download_style_images():
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; NST-App/1.0; +https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer)"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
     print("\n" + "="*50)
-    print("Downloading style images...")
+    print("Downloading style images from GitHub...")
     print("="*50)
     for filename, url in STYLE_URLS.items():
         dest = STYLES_DIR / filename
         if dest.exists() and dest.stat().st_size > 10000:
-            print(f"  ✓ {filename} already exists")
+            print(f"  ✓ {filename} cached")
             continue
         try:
             print(f"  ⬇  {filename}...", end=" ", flush=True)
@@ -71,10 +65,8 @@ PRESET_KEY_MAP = {
 def stylize(content_image, style_image, preset_choice, subject_mode,
             num_steps, style_strength, content_preservation,
             progress=gr.Progress()):
-
     if content_image is None:
         raise gr.Error("Please upload a content image (your photo).")
-
     using_preset = preset_choice != "None — upload your own style image"
     if not using_preset and style_image is None:
         raise gr.Error("Please pick a preset style OR upload a custom style image.")
@@ -87,7 +79,7 @@ def stylize(content_image, style_image, preset_choice, subject_mode,
         s_weight   = preset_cfg["style_weight"]
         steps      = preset_cfg["num_steps"]
         if not Path(style_path).exists():
-            raise gr.Error(f"Style image '{preset_cfg['filename']}' not available. Please upload a custom style image instead.")
+            raise gr.Error(f"Style image not available. Please upload a custom style image instead.")
     else:
         style_path = style_image
         c_weight   = content_preservation
@@ -115,12 +107,9 @@ def stylize(content_image, style_image, preset_choice, subject_mode,
     progress(0, desc="Loading VGG-19 model...")
     start  = time.time()
     result = run_style_transfer(
-        content_path=content_image,
-        style_path=style_path,
-        output_path=output_path,
-        num_steps=steps,
-        content_weight=c_weight,
-        style_weight=s_weight,
+        content_path=content_image, style_path=style_path,
+        output_path=output_path, num_steps=steps,
+        content_weight=c_weight, style_weight=s_weight,
         progress_callback=progress_cb,
     )
     elapsed = time.time() - start
@@ -128,40 +117,74 @@ def stylize(content_image, style_image, preset_choice, subject_mode,
     return result
 
 
-# ── Gradio 6 compatible UI ────────────────────────────────────
-with gr.Blocks(title="Neural Style Transfer") as demo:
+CSS = """
+body { background: #0f0a1e !important; }
+.gradio-container {
+    max-width: 1050px !important;
+    margin: auto !important;
+    background: #0f0a1e !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+}
+.gr-button-primary {
+    background: linear-gradient(135deg, #6366f1, #a855f7) !important;
+    border: none !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+}
+.gr-button-primary:hover { opacity: 0.9 !important; transform: scale(1.01) !important; }
+footer { display: none !important; }
+.gradio-container h3 { color: #c4b5fd !important; }
+"""
+
+with gr.Blocks(title="Neural Style Transfer 🎨", css=CSS) as demo:
 
     gr.HTML("""
-    <div style="text-align:center;padding:24px 0 12px">
-      <h1 style="font-size:2.4rem;font-weight:800;margin:0;
+    <div style="text-align:center;padding:28px 0 16px">
+      <h1 style="font-size:2.6rem;font-weight:800;margin:0;letter-spacing:-0.5px;
                  background:linear-gradient(135deg,#6366f1,#a855f7);
                  -webkit-background-clip:text;-webkit-text-fill-color:transparent">
         🎨 Neural Style Transfer
       </h1>
-      <p style="color:#6b7280;margin-top:10px;font-size:1rem">
+      <p style="color:#9ca3af;margin-top:10px;font-size:1rem;font-weight:400">
         Transform your photos into masterpieces using VGG-19 deep learning
       </p>
-      <div style="margin-top:10px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap">
-        <a href="https://arxiv.org/abs/1508.06576" target="_blank" style="color:#6366f1;font-size:0.85rem">📄 Gatys et al., 2015</a>
-        <a href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer" target="_blank" style="color:#6366f1;font-size:0.85rem">⭐ GitHub</a>
-        <a href="https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb" target="_blank" style="color:#6366f1;font-size:0.85rem">📓 Colab (GPU)</a>
+      <div style="margin-top:12px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+        <a href="https://arxiv.org/abs/1508.06576" target="_blank"
+           style="color:#818cf8;font-size:0.85rem;text-decoration:none;
+                  background:#1e1b4b;padding:4px 12px;border-radius:20px;border:1px solid #3730a3">
+          📄 Gatys et al., 2015
+        </a>
+        <a href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer" target="_blank"
+           style="color:#818cf8;font-size:0.85rem;text-decoration:none;
+                  background:#1e1b4b;padding:4px 12px;border-radius:20px;border:1px solid #3730a3">
+          ⭐ GitHub
+        </a>
+        <a href="https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb"
+           target="_blank"
+           style="color:#818cf8;font-size:0.85rem;text-decoration:none;
+                  background:#1e1b4b;padding:4px 12px;border-radius:20px;border:1px solid #3730a3">
+          📓 Colab GPU
+        </a>
       </div>
     </div>
+    <hr style="border:none;border-top:1px solid #1e1b4b;margin:0 0 8px"/>
     """)
 
-    with gr.Row():
+    with gr.Row(equal_height=False):
         with gr.Column(scale=1):
-            gr.Markdown("### 📸 Upload Images")
-            content_img = gr.Image(label="Content image — your photo", type="filepath", height=260)
-            style_img   = gr.Image(label="Custom style image (optional)", type="filepath", height=180)
+            gr.Markdown("### 📸 Your Photo")
+            content_img = gr.Image(label="Content image", type="filepath", height=240)
 
             gr.Markdown("### 🎨 Art Style")
             preset = gr.Dropdown(
                 choices=PRESET_CHOICES,
                 value=PRESET_CHOICES[1],
-                label="Preset artwork",
-                info="Or upload your own style image above",
+                label="Choose a preset artwork",
+                info="Or upload your own style image below",
             )
+            style_img = gr.Image(label="Custom style image (optional)", type="filepath", height=160)
 
             gr.Markdown("### 🎯 Subject Mode")
             subject_mode = gr.Radio(
@@ -171,53 +194,57 @@ with gr.Blocks(title="Neural Style Transfer") as demo:
                     "Max Style — full artistic effect",
                 ],
                 value="Portrait — preserve face structure",
-                label="What type of photo are you stylizing?",
+                label="What type of photo?",
             )
 
         with gr.Column(scale=1):
             gr.Markdown("### ✨ Stylized Result")
-            output_img  = gr.Image(label="Output", type="filepath", height=380)
+            output_img  = gr.Image(label="Output", type="filepath", height=400)
             stylize_btn = gr.Button("🎨  Stylize my image!", variant="primary", size="lg")
 
+            gr.HTML("<br/>")
+
             with gr.Accordion("⚙️ Advanced settings", open=False):
-                gr.Markdown("*Subject mode sets these automatically.*")
-                num_steps  = gr.Slider(50, 500,            value=300,        step=50,         label="Quality steps")
+                gr.Markdown("*Subject mode sets these automatically — tweak if you want.*")
+                num_steps  = gr.Slider(50, 500,            value=300,        step=50,         label="Quality steps (more = better, slower)")
                 s_strength = gr.Slider(1e7, 1_000_000_000, value=80_000_000, step=10_000_000, label="Style strength")
                 c_preserve = gr.Slider(500, 50_000,        value=15_000,     step=500,         label="Content preservation")
 
-    with gr.Accordion("🧠 How does this work?", open=False):
+    with gr.Accordion("🧠 How does Neural Style Transfer work?", open=False):
         gr.Markdown("""
-**Neural Style Transfer** separates and recombines the *content* of one image with the *style* of another.
+**NST** uses a pretrained **VGG-19** CNN to separate and recombine image content and style:
 
 | Step | What happens |
 |------|-------------|
-| **1** | VGG-19 extracts **content features** from your photo (layer conv4_2) |
-| **2** | **Gram matrices** capture style texture statistics from the artwork |
-| **3** | **L-BFGS optimizer** minimizes `α×content_loss + β×style_loss` |
-| **4** | After ~300-400 iterations → your photo is painted in the artwork's style |
+| **1** | Extract **content features** from your photo at VGG layer `conv4_2` |
+| **2** | Extract **style** via **Gram matrices** across 5 layers (captures texture, not position) |
+| **3** | **L-BFGS optimizer** minimizes `α × content_loss + β × style_loss` on pixel values |
+| **4** | After 300–400 iterations → your photo painted in the artwork's style ✨ |
 
-> Based on [Gatys, Ecker & Bethge (2015)](https://arxiv.org/abs/1508.06576)
+> Based on [Gatys, Ecker & Bethge — "A Neural Algorithm of Artistic Style" (2015)](https://arxiv.org/abs/1508.06576)
         """)
 
     gr.Markdown("""
 ### 💡 Tips for best results
-- **Portrait photos** → use **Portrait mode** (preserves face, adds artistic texture)
-- **Landscapes/scenes** → use **Landscape mode** (bold dramatic transformation)
-- **Quick preview** → set steps to **100** (~1-2 min on CPU)
+- **Portrait photos** → **Portrait mode** preserves face structure while adding artistic texture
+- **Landscapes** → **Landscape mode** gives bold, dramatic transformation
+- **Quick preview** → set steps to **100** (~1 min on CPU)
 - **Best quality** → set steps to **400** (~8-12 min on CPU)
-- **For GPU speed** → use the [Google Colab notebook](https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb) 🚀
+- **Want GPU speed?** → [Open in Google Colab](https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb) 🚀
     """)
 
     gr.HTML("""
-    <div style="text-align:center;padding:20px 0;border-top:1px solid #374151;margin-top:24px">
-      <p style="color:#9ca3af;font-size:0.85rem;margin:0">
-        Made with ❤️ by
+    <hr style="border:none;border-top:1px solid #1e1b4b;margin:24px 0 16px"/>
+    <div style="text-align:center;padding:8px 0 16px">
+      <p style="color:#6b7280;font-size:0.85rem;margin:0">
+        Made with <span style="color:#ef4444">❤️</span> by
         <a href="https://github.com/TUSHARTAMRAKAR" target="_blank"
-           style="color:#6366f1;font-weight:600;text-decoration:none">Tushar Tamrakar</a>
+           style="color:#818cf8;font-weight:600;text-decoration:none">Tushar Tamrakar</a>
         &nbsp;·&nbsp;
         <a href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer" target="_blank"
-           style="color:#6366f1;text-decoration:none">⭐ Star on GitHub</a>
-        &nbsp;·&nbsp; MIT License
+           style="color:#818cf8;text-decoration:none">⭐ Star on GitHub</a>
+        &nbsp;·&nbsp;
+        <span style="color:#4b5563">MIT License</span>
       </p>
     </div>
     """)
@@ -229,10 +256,4 @@ with gr.Blocks(title="Neural Style Transfer") as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        show_error=True,
-        theme=gr.themes.Soft(primary_hue="indigo", secondary_hue="purple",
-                             font=gr.themes.GoogleFont("Inter")),
-    )
+    demo.launch(server_name="0.0.0.0", server_port=7860, show_error=True, ssr_mode=False)
