@@ -6,6 +6,7 @@
 <br/>
 
 <p align="center">
+  
   <strong>A production-grade deep learning web application that transforms ordinary photographs into extraordinary artworks — powered by VGG-19, PyTorch, FastAPI, and React.</strong>
 </p>
 
