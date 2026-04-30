@@ -63,3 +63,9 @@ Thumbs.db
 *.tmp
 .coverage
 htmlcov/
+
+# Style images — downloaded at runtime via download_styles.py or spaces/app.py
+# These are large files (10-25MB each) — not stored in git
+backend/style_images/*.jpg
+backend/style_images/*.jpeg
+backend/style_images/*.png
