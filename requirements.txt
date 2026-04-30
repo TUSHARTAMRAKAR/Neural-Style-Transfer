@@ -1,7 +1,6 @@
-# Hugging Face Spaces — Python 3.13 compatible
+# Hugging Face Spaces — Python 3.13 + Gradio 6 compatible
 torch==2.7.0
 torchvision==0.22.0
 Pillow>=10.4.0
-numpy>=2.0.0
 python-multipart>=0.0.9
 aiofiles>=23.2.1

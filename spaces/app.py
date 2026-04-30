@@ -113,7 +113,7 @@ PRESET_KEY_MAP = {
 def stylize(
     content_image, style_image, preset_choice, subject_mode,
     num_steps, style_strength, content_preservation,
-    progress=gr.Progress(track_tqdm=True),
+    progress=gr.Progress(),
 ):
     if content_image is None:
         raise gr.Error("Please upload a content image (your photo).")
@@ -252,7 +252,7 @@ with gr.Blocks(
                 label="Output",
                 type="filepath",
                 height=380,
-                show_download_button=True,
+                
             )
             stylize_btn = gr.Button(
                 "🎨  Stylize my image!",
