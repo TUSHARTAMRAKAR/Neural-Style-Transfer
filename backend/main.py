@@ -69,10 +69,12 @@ curated artworks (Starry Night, The Scream, Kandinsky, etc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",       # Vite dev server
-        "http://localhost:3000",       # Alternative dev port
-        "https://*.hf.space",          # Hugging Face Spaces wildcard
-        "*",                           # Allow all for demo (restrict in prod)
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://*.hf.space",
+        "https://*.vercel.app",        # Vercel deployment
+        "https://neural-style-transfer.vercel.app",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],

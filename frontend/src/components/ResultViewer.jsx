@@ -83,7 +83,7 @@ export function ResultViewer({ resultUrl, onReset }) {
   // resultUrl comes from backend as "/result/{job_id}"
   // We must point directly to FastAPI on port 8000, NOT through Vite proxy
   // because the Vite proxy strips auth headers needed for file download
-  const apiBase = "http://localhost:8000";
+  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const fullUrl = resultUrl?.startsWith("/")
     ? `${apiBase}${resultUrl}`
     : resultUrl;
