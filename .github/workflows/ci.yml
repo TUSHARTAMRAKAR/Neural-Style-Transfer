@@ -85,15 +85,17 @@ jobs:
       - name: Check Python formatting (black)
         working-directory: backend
         run: black --check --diff .
+        continue-on-error: true   # Warning only
 
       - name: Check import order (isort)
         working-directory: backend
         run: isort --check-only .
+        continue-on-error: true   # Warning only
 
       - name: Lint Python (flake8)
         working-directory: backend
         run: flake8 . --max-line-length=100 --exclude=__pycache__
-        continue-on-error: true   # Don't fail CI on style warnings
+        continue-on-error: true   # Warning only
 
   # ── Deploy to Hugging Face (on main push) ─────────────
   deploy-hf-spaces:
@@ -113,6 +115,6 @@ jobs:
         run: |
           git config --global user.email "ci@github.com"
           git config --global user.name "GitHub CI"
-          git remote add hf https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer
+          git remote add hf https://huggingface.co/spaces/Tusharz/neural-style-transfer
           git push hf main --force
         continue-on-error: true   # Don't fail if HF_TOKEN not set

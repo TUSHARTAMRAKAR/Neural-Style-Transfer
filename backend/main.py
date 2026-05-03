@@ -170,6 +170,7 @@ class StatusResponse(BaseModel):
 # ═══════════════════════════════════════════════════════════
 
 @app.get("/", summary="Health check")
+@app.head("/", summary="Health check (HEAD)")
 async def root():
     """Quick health check — confirms the API is running."""
     return {
