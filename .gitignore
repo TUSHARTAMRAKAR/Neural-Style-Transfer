@@ -69,3 +69,6 @@ htmlcov/
 backend/style_images/*.jpg
 backend/style_images/*.jpeg
 backend/style_images/*.png
+
+# Exception — frontend thumbnails MUST be in git
+!frontend/public/style_images/*.jpg

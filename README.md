@@ -6,7 +6,6 @@
 <br/>
 
 <p align="center">
-  
   <strong>A production-grade deep learning web application that transforms ordinary photographs into extraordinary artworks — powered by VGG-19, PyTorch, FastAPI, and React.</strong>
 </p>
 
@@ -17,7 +16,7 @@
   <a href="https://github.com/TUSHARTAMRAKAR/neural-style-transfer/actions/workflows/ci.yml">
     <img src="https://github.com/TUSHARTAMRAKAR/neural-style-transfer/actions/workflows/ci.yml/badge.svg" alt="CI Status"/>
   </a>
-  <a href="https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer">
+  <a href="https://huggingface.co/spaces/Tusharz/Neural-Style-Transfer">
     <img src="https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-FFD21E?style=flat" alt="HF Spaces"/>
   </a>
   <a href="https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb">
@@ -38,7 +37,7 @@
 
 <!-- Demo links -->
 <p align="center">
-  <a href="https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer">
+  <a href="https://huggingface.co/spaces/Tusharz/Neural-Style-Transfer">
     <img src="https://img.shields.io/badge/🌐 Live Demo-Try it now-6366F1?style=for-the-badge" alt="Live Demo"/>
   </a>
   &nbsp;&nbsp;
@@ -199,8 +198,10 @@ neural-style-transfer/
 
 | Platform | Link | GPU? | Cost |
 |----------|------|------|------|
-| 🤗 Hugging Face Spaces | [Live App →](https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer) | CPU | Free forever |
-| 📓 Google Colab | [Open Notebook →](https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb) | T4 GPU ✅ | Free |
+| 🌐 Vercel (React App) | [Live App →](https://neural-style-transfer-pied.vercel.app) | CPU | Free forever |
+| 📡 Render (FastAPI) | [API Docs →](https://neural-style-transfer-api.onrender.com/docs) | CPU | Free forever |
+| 🤗 Hugging Face Spaces | [Gradio App →](https://huggingface.co/spaces/Tusharz/Neural-Style-Transfer) | CPU | Free forever |
+| 📓 Google Colab | [Open Notebook →](https://colab.research.google.com/github/TUSHARTAMRAKAR/Neural-Style-Transfer/blob/main/notebook/nst_colab.ipynb) | T4 GPU ✅ | Free |
 
 ### 💻 Option 2 — Run Locally
 
@@ -362,7 +363,7 @@ git push origin main  # → GitHub Actions → Hugging Face Spaces
 ### Manual Push to HF
 
 ```bash
-git remote add hf https://huggingface.co/spaces/YOURUSERNAME/neural-style-transfer
+git remote add hf https://huggingface.co/spaces/Tusharz/Neural-Style-Transfer
 git push hf main
 ```
 

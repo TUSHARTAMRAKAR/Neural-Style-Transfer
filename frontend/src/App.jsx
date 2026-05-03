@@ -128,7 +128,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="https://github.com/yourusername/neural-style-transfer"
+              href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
@@ -136,7 +136,7 @@ export default function App() {
               <Github size={15} /> GitHub
             </a>
             <a
-              href="https://colab.research.google.com"
+              href="https://colab.research.google.com/github/TUSHARTAMRAKAR/Neural-Style-Transfer/blob/main/notebook/nst_colab.ipynb"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
