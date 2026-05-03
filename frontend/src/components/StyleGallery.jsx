@@ -67,7 +67,7 @@ export default function StyleGallery({ presets, selected, onSelect }) {
               <div className={`h-20 bg-gradient-to-br ${gradientClass} flex items-center justify-center relative`}>
                 {preset.thumbnail ? (
                   <img
-                    src={`${import.meta.env.VITE_API_URL || "http://localhost:8000"}${preset.thumbnail}`}
+                    src={`/style_images/${preset.key}.jpg`}
                     alt={preset.name}
                     className="w-full h-full object-cover"
                     onError={(e) => { e.target.style.display = "none"; }}
