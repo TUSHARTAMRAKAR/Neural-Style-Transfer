@@ -1,10 +1,18 @@
 /**
- * ProgressBar.jsx
- * Shows style transfer progress with animated bar and loss metrics.
+ * ResultViewer.jsx
+ * Shows final stylized image with:
+ *   1. Before/after comparison slider (drag to reveal original vs stylized)
+ *   2. Download button
+ *   3. New image button
  */
 
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Download, RotateCcw, SplitSquareHorizontal, Image } from "lucide-react";
 import { Loader2, Brain } from "lucide-react";
 
+// ─────────────────────────────────────────────
+// ProgressBar component
+// ─────────────────────────────────────────────
 export function ProgressBar({ status, progress, step, totalSteps, losses }) {
   const pct = Math.round(progress * 100);
 
@@ -17,7 +25,6 @@ export function ProgressBar({ status, progress, step, totalSteps, losses }) {
 
   return (
     <div className="flex flex-col gap-4 p-5 rounded-xl bg-indigo-950/40 border border-indigo-800/30">
-      {/* Header */}
       <div className="flex items-center gap-3">
         {status === "processing" || status === "pending" ? (
           <Loader2 size={18} className="text-indigo-400 animate-spin" />
@@ -37,7 +44,6 @@ export function ProgressBar({ status, progress, step, totalSteps, losses }) {
         </span>
       </div>
 
-      {/* Progress bar */}
       <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
@@ -45,7 +51,6 @@ export function ProgressBar({ status, progress, step, totalSteps, losses }) {
         />
       </div>
 
-      {/* Loss metrics */}
       {losses.total !== null && (
         <div className="grid grid-cols-3 gap-3 text-center">
           {[
@@ -71,33 +76,145 @@ export function ProgressBar({ status, progress, step, totalSteps, losses }) {
 }
 
 
-/**
- * ResultViewer.jsx
- * Shows the final stylized image with download button.
- * Exported as named export from same file for simplicity.
- */
+// ─────────────────────────────────────────────
+// Before/After Slider component
+// ─────────────────────────────────────────────
+function CompareSlider({ beforeUrl, afterUrl }) {
+  const [sliderPos, setSliderPos]   = useState(50); // percentage
+  const [dragging, setDragging]     = useState(false);
+  const containerRef                = useRef(null);
 
-import { Download, RotateCcw, ExternalLink } from "lucide-react";
+  const updateSlider = useCallback((clientX) => {
+    if (!containerRef.current) return;
+    const rect   = containerRef.current.getBoundingClientRect();
+    const x      = clientX - rect.left;
+    const pct    = Math.min(100, Math.max(0, (x / rect.width) * 100));
+    setSliderPos(pct);
+  }, []);
 
-export function ResultViewer({ resultUrl, onReset }) {
-  // resultUrl comes from backend as "/result/{job_id}"
-  // We must point directly to FastAPI on port 8000, NOT through Vite proxy
-  // because the Vite proxy strips auth headers needed for file download
-  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
-  const fullUrl = resultUrl?.startsWith("/")
-    ? `${apiBase}${resultUrl}`
-    : resultUrl;
+  // Mouse events
+  const onMouseDown = (e) => { e.preventDefault(); setDragging(true); updateSlider(e.clientX); };
+  const onMouseMove = useCallback((e) => { if (dragging) updateSlider(e.clientX); }, [dragging, updateSlider]);
+  const onMouseUp   = useCallback(() => setDragging(false), []);
+
+  // Touch events
+  const onTouchStart = (e) => { setDragging(true); updateSlider(e.touches[0].clientX); };
+  const onTouchMove  = useCallback((e) => { if (dragging) updateSlider(e.touches[0].clientX); }, [dragging, updateSlider]);
+  const onTouchEnd   = useCallback(() => setDragging(false), []);
+
+  useEffect(() => {
+    if (dragging) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup",   onMouseUp);
+      window.addEventListener("touchmove", onTouchMove, { passive: true });
+      window.addEventListener("touchend",  onTouchEnd);
+    }
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup",   onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend",  onTouchEnd);
+    };
+  }, [dragging, onMouseMove, onMouseUp, onTouchMove, onTouchEnd]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden rounded-xl border border-indigo-500/30 select-none"
+      style={{ cursor: dragging ? "grabbing" : "col-resize" }}
+      onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
+    >
+      {/* AFTER image (stylized) — full width base layer */}
+      <img
+        src={afterUrl}
+        alt="Stylized result"
+        className="w-full block"
+        style={{ maxHeight: "480px", objectFit: "cover" }}
+        draggable={false}
+      />
+
+      {/* BEFORE image (original) — clipped to left side of slider */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ width: `${sliderPos}%` }}
+      >
+        <img
+          src={beforeUrl}
+          alt="Original photo"
+          className="w-full block"
+          style={{
+            maxHeight: "480px",
+            objectFit: "cover",
+            width: containerRef.current
+              ? `${containerRef.current.offsetWidth}px`
+              : "100%",
+          }}
+          draggable={false}
+        />
+      </div>
+
+      {/* Divider line */}
+      <div
+        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
+        style={{ left: `${sliderPos}%`, transform: "translateX(-50%)" }}
+      >
+        {/* Drag handle circle */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                     w-9 h-9 rounded-full bg-white shadow-xl
+                     flex items-center justify-center"
+          style={{ cursor: dragging ? "grabbing" : "grab" }}
+        >
+          <SplitSquareHorizontal size={18} className="text-gray-700" />
+        </div>
+      </div>
+
+      {/* Labels */}
+      <div className="absolute top-3 left-3">
+        <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-full font-medium">
+          Original
+        </span>
+      </div>
+      <div className="absolute top-3 right-3">
+        <span className="bg-indigo-600/80 text-white text-[10px] px-2 py-1 rounded-full font-medium">
+          ✦ Stylized
+        </span>
+      </div>
+
+      {/* Hint shown only when not dragging */}
+      {!dragging && sliderPos === 50 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+          <span className="bg-black/50 text-gray-300 text-[10px] px-3 py-1 rounded-full">
+            ← drag to compare →
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// ResultViewer — main export
+// ─────────────────────────────────────────────
+export function ResultViewer({ resultUrl, contentFile, onReset }) {
+  const [viewMode, setViewMode] = useState("slider"); // "slider" | "stylized"
+
+  const apiBase   = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const fullUrl   = resultUrl?.startsWith("/") ? `${apiBase}${resultUrl}` : resultUrl;
+
+  // Create object URL for the original uploaded file
+  const originalUrl = contentFile ? URL.createObjectURL(contentFile) : null;
 
   const handleDownload = async () => {
     try {
-      // Fetch the image as a blob then trigger browser download
-      // This avoids CORS issues with the <a download> attribute
       const response = await fetch(fullUrl);
       if (!response.ok) throw new Error("Download failed");
-      const blob = await response.blob();
+      const blob    = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
+      const link    = document.createElement("a");
+      link.href     = blobUrl;
       link.download = "stylized_result.png";
       document.body.appendChild(link);
       link.click();
@@ -110,36 +227,57 @@ export function ResultViewer({ resultUrl, onReset }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Result image */}
-      <div className="relative rounded-xl overflow-hidden border border-indigo-500/30">
-        <img
-          src={fullUrl}
-          alt="Stylized result"
-          className="w-full object-cover rounded-xl"
-          style={{ maxHeight: "500px" }}
-          onError={(e) => {
-            e.target.style.display = "none";
-            e.target.nextSibling.style.display = "flex";
-          }}
-        />
-        <div
-          style={{ display: "none" }}
-          className="w-full h-48 items-center justify-center text-gray-500 text-sm"
-        >
-          Image failed to load — try opening {fullUrl} directly
-        </div>
-        <div className="absolute top-3 right-3">
-          <span className="bg-green-900/80 text-green-300 text-xs px-2 py-1 rounded-full border border-green-700/50">
-            ✓ Complete
-          </span>
-        </div>
-      </div>
 
-      {/* Direct link to verify image loads */}
+      {/* View mode toggle — only show slider option if we have original */}
+      {originalUrl && (
+        <div className="flex rounded-lg overflow-hidden border border-white/10 text-xs">
+          <button
+            onClick={() => setViewMode("slider")}
+            className={`flex-1 py-2 font-medium flex items-center justify-center gap-1.5 transition-colors
+              ${viewMode === "slider"
+                ? "bg-indigo-600 text-white"
+                : "bg-white/5 text-gray-400 hover:text-white"}`}
+          >
+            <SplitSquareHorizontal size={13} />
+            Compare slider
+          </button>
+          <button
+            onClick={() => setViewMode("stylized")}
+            className={`flex-1 py-2 font-medium flex items-center justify-center gap-1.5 transition-colors
+              ${viewMode === "stylized"
+                ? "bg-indigo-600 text-white"
+                : "bg-white/5 text-gray-400 hover:text-white"}`}
+          >
+            <Image size={13} />
+            Stylized only
+          </button>
+        </div>
+      )}
+
+      {/* Image display */}
+      {viewMode === "slider" && originalUrl ? (
+        <CompareSlider beforeUrl={originalUrl} afterUrl={fullUrl} />
+      ) : (
+        <div className="relative rounded-xl overflow-hidden border border-indigo-500/30">
+          <img
+            src={fullUrl}
+            alt="Stylized result"
+            className="w-full object-cover rounded-xl"
+            style={{ maxHeight: "480px" }}
+          />
+          <div className="absolute top-3 right-3">
+            <span className="bg-green-900/80 text-green-300 text-xs px-2 py-1 rounded-full border border-green-700/50">
+              ✓ Complete
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Can't see it? link */}
       <p className="text-xs text-gray-500 text-center">
         Can&#39;t see it?{" "}
         <a href={fullUrl} target="_blank" rel="noreferrer" className="text-indigo-400 underline">
-          Open image directly in browser
+          Open directly in browser
         </a>
       </p>
 
@@ -148,8 +286,7 @@ export function ResultViewer({ resultUrl, onReset }) {
         <button
           onClick={handleDownload}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl
-                     bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium
-                     transition-colors"
+                     bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
         >
           <Download size={16} />
           Download PNG

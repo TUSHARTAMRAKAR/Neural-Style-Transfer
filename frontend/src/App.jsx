@@ -167,7 +167,7 @@ export default function App() {
         {appState === "done" ? (
           /* ── Result view ── */
           <div className="max-w-2xl mx-auto">
-            <ResultViewer resultUrl={resultUrl} onReset={handleReset} />
+            <ResultViewer resultUrl={resultUrl} contentFile={contentFile} onReset={handleReset} />
           </div>
         ) : appState === "processing" ? (
           /* ── Progress view ── */

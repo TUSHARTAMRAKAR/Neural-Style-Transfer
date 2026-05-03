@@ -66,15 +66,18 @@ This isn't a filter. This isn't a preset LUT. This is genuine **neural style tra
 
 <div align="center">
 
-| Original Photo | Style Reference | Stylized Output |
+| Original Photo | Style | Stylized Result |
 |:-:|:-:|:-:|
-| Portrait photo | Van Gogh — Starry Night | *Swirling cosmic brushstrokes* |
-| Landscape photo | Hokusai — The Great Wave | *Bold Japanese woodblock lines* |
-| Portrait photo | Kandinsky — Composition VIII | *Geometric abstract fragments* |
-| Scene photo | Byzantine Mosaic | *Ancient tile-like patterns* |
+| ![Original](docs/results/content_sample.jpg) | Van Gogh — Starry Night | ![Stylized](docs/results/result_starry.png) |
+| ![Original](docs/results/content_sample2.jpg) | Hokusai — The Great Wave | ![Stylized](docs/results/result_wave.png) |
 
-> 📸 **Add your own before/after images here after running the app!**
-> `docs/results/` folder — drop your PNGs there and update this table.
+> 📸 **Replace the images in `docs/results/` with your own before/after photos!**
+> Name them exactly: `content_sample.jpg`, `result_starry.png` etc.
+
+### ✨ Live Demo
+Try it yourself at **[neural-style-transfer-pied.vercel.app](https://neural-style-transfer-pied.vercel.app)**
+
+The app features a **before/after comparison slider** — drag to reveal the transformation!
 
 </div>
 
