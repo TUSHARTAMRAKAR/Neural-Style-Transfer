@@ -32,6 +32,17 @@ const TAGLINES = [
   "Van Gogh never uploaded a selfie. You can.",
 ];
 
+// Inject keyframes directly into the DOM — guarantees Vite picks it up
+const TAGLINE_STYLE = `
+  @keyframes tagCycle {
+    0%   { opacity: 0; transform: translateY(6px); }
+    8%   { opacity: 1; transform: translateY(0px); }
+    30%  { opacity: 1; transform: translateY(0px); }
+    38%  { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 0; transform: translateY(-6px); }
+  }
+`;
+
 export default function App() {
   const [dark, setDark] = useDarkMode();
   const [contentFile,    setContentFile]    = useState(null);
@@ -108,10 +119,21 @@ export default function App() {
                 Neural Style Transfer
               </div>
               {/* Always-animating tagline */}
-              <div style={{ position:"relative", height:20, overflow:"hidden", width:280, marginTop:3 }}>
-                {TAGLINES.map((t,i) => (
-                  <div key={i} className="tagline-item"
-                       style={{ fontSize:12, color:"var(--mauve-dark)", fontStyle:"italic", lineHeight:1.5, fontWeight:500 }}>
+              <style>{TAGLINE_STYLE}</style>
+              <div style={{ position:"relative", height:20, overflow:"hidden", width:300, marginTop:3 }}>
+                {TAGLINES.map((t, i) => (
+                  <div key={i} style={{
+                    position:        "absolute",
+                    width:           "100%",
+                    fontSize:        12,
+                    color:           "var(--mauve-dark)",
+                    fontStyle:       "italic",
+                    fontWeight:      500,
+                    lineHeight:      1.5,
+                    opacity:         0,
+                    animation:       `tagCycle 12s ease-in-out infinite`,
+                    animationDelay:  `${i * 4}s`,
+                  }}>
                     {t}
                   </div>
                 ))}
