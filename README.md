@@ -66,17 +66,19 @@ You upload a photo  +  You pick a painting  →  AI paints your photo in that st
 
 ## 🖼️ Results Gallery
 
-| Content | Style | Result |
-|:---:|:---:|:---:|
-| Your photo | Van Gogh — Starry Night | Cosmic swirling brushstrokes |
-| Your photo | Hokusai — The Great Wave | Bold Japanese woodblock lines |
-| Your photo | Kandinsky — Composition VIII | Geometric abstract fragments |
-| Your photo | Byzantine Mosaic | Ancient tile-like patterns |
-| Your photo | Edvard Munch — The Scream | Expressive wavy drama |
-| Your photo | Francis Picabia — Udnie | Cubist warm abstraction |
+<div align="center">
 
-> 📸 Try it yourself → **[neural-style-transfer-pied.vercel.app](https://neural-style-transfer-pied.vercel.app)**
-> Features a **before/after drag slider** with blur-reveal effect on every result.
+| Original Photo | Style Reference | Stylized Output |
+|:---:|:---:|:---:|
+| ![Content](docs/results/content_sample.jpg) | Van Gogh — Starry Night | ![Result](docs/results/result_starry.png) |
+| ![Content](docs/results/content_sample2.jpg) | Hokusai — The Great Wave | ![Result](docs/results/result_wave.png) |
+
+</div>
+
+> 📸 **[Try it yourself — upload your own photo](https://neural-style-transfer-pied.vercel.app)**
+> The app features a **before/after drag slider** with cinematic blur-reveal effect on every result.
+>
+> ➕ **Add your own results:** Drop before/after PNGs into `docs/results/` and update this table.
 
 ---
 
@@ -483,7 +485,21 @@ Free to use, modify, and distribute. Attribution appreciated but not required.
 
 <br/><br/>
 
+<img src="https://github.com/TUSHARTAMRAKAR.png" width="80" height="80" style="border-radius:50%" alt="Tushar Tamrakar"/>
+
+<br/>
+
 Made with ❤️ by **[Tushar Tamrakar](https://github.com/TUSHARTAMRAKAR)**
+
+<p>
+  <a href="https://github.com/TUSHARTAMRAKAR">
+    <img src="https://img.shields.io/github/followers/TUSHARTAMRAKAR?label=Follow&style=social"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer">
+    <img src="https://img.shields.io/github/stars/TUSHARTAMRAKAR/Neural-Style-Transfer?style=social"/>
+  </a>
+</p>
 
 *If this project helped you, please consider giving it a ⭐ — it means a lot!*
 
