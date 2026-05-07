@@ -1,358 +1,307 @@
-/**
- * App.jsx — Main application component
- *
- * UI Flow:
- *   IDLE → upload content + pick style → READY → click Stylize
- *   → PROCESSING (poll progress) → COMPLETED (show result)
- *
- * State machine:
- *   "idle"       — nothing uploaded yet
- *   "ready"      — content + style selected, ready to submit
- *   "processing" — job submitted, polling for progress
- *   "done"       — result available
- *   "error"      — something failed
- */
-
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Sparkles, Settings, Github, BookOpen } from "lucide-react";
-
-import UploadPanel          from "./components/UploadPanel.jsx";
-import StyleGallery         from "./components/StyleGallery.jsx";
-import { ProgressBar }      from "./components/ResultViewer.jsx";
-import { ResultViewer }     from "./components/ResultViewer.jsx";
-import { useJobPoller }     from "./hooks/useJobPoller.js";
+import { Sparkles, Settings, Github, BookOpen, Sun, Moon } from "lucide-react";
+import UploadPanel from "./components/UploadPanel.jsx";
+import StyleGallery from "./components/StyleGallery.jsx";
+import { ProgressBar, ResultViewer } from "./components/ResultViewer.jsx";
+import { useJobPoller } from "./hooks/useJobPoller.js";
 import { fetchStyles, submitStylizeJob } from "./utils/api.js";
 
+function useDarkMode() {
+  const [dark, setDark] = useState(() =>
+    typeof window !== "undefined" &&
+    (localStorage.getItem("theme") === "dark" ||
+     (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches))
+  );
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  }, [dark]);
+  return [dark, setDark];
+}
+
+const SUBJECT_MODES = {
+  portrait:  { label: "Portrait",  emoji: "🧑", hint: "Preserves face structure, adds artistic texture",   contentWeight: 15000, styleWeight: 80_000_000,  numSteps: 300 },
+  landscape: { label: "Landscape", emoji: "🌄", hint: "Bold dramatic transformation for scenes",            contentWeight: 5000,  styleWeight: 400_000_000, numSteps: 400 },
+  abstract:  { label: "Max Style", emoji: "🎨", hint: "Maximum artistic effect — great for objects/scenes", contentWeight: 1000,  styleWeight: 900_000_000, numSteps: 400 },
+};
+
+const TAGLINES = [
+  "Where pixels meet the paintbrush.",
+  "Deep learning. Timeless art.",
+  "Van Gogh never uploaded a selfie. You can.",
+];
+
 export default function App() {
-  // ── Image state ────────────────────────────────────────
+  const [dark, setDark] = useDarkMode();
   const [contentFile,    setContentFile]    = useState(null);
   const [styleFile,      setStyleFile]      = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
-
-  // ── Style presets from API ──────────────────────────────
-  const [presets,        setPresets]        = useState([]);
   const [useCustomStyle, setUseCustomStyle] = useState(false);
-
-  // ── Advanced params ─────────────────────────────────────
+  const [presets,        setPresets]        = useState([]);
+  const [subjectMode,    setSubjectMode]    = useState("portrait");
   const [showAdvanced,   setShowAdvanced]   = useState(false);
-  const [subjectMode,    setSubjectMode]    = useState("portrait"); // portrait | landscape | abstract
   const [numSteps,       setNumSteps]       = useState(300);
   const [contentWeight,  setContentWeight]  = useState(15000);
-  const [styleWeight,    setStyleWeight]    = useState(80000000);
-
-  // Subject mode presets — apply recommended settings instantly
-  const SUBJECT_PRESETS = {
-    portrait:  { label: "Portrait / Face", numSteps: 300, contentWeight: 15000,  styleWeight: 80000000,   hint: "Safe for faces — preserves face structure, adds subtle artistic texture" },
-    landscape: { label: "Landscape / Scene", numSteps: 400, contentWeight: 5000,  styleWeight: 400000000,  hint: "Bold style for scenery — strong effect without destroying structure" },
-    abstract:  { label: "Max Style / Abstract", numSteps: 400, contentWeight: 1000,  styleWeight: 900000000,  hint: "Maximum style — great for scenery, objects. Face will distort heavily" },
-  };
-
-  const applySubjectMode = (mode) => {
-    const p = SUBJECT_PRESETS[mode];
-    setSubjectMode(mode);
-    setNumSteps(p.numSteps);
-    setContentWeight(p.contentWeight);
-    setStyleWeight(p.styleWeight);
-  };
-
-  // ── Job tracking ────────────────────────────────────────
+  const [styleWeight,    setStyleWeight]    = useState(80_000_000);
   const [jobId,          setJobId]          = useState(null);
   const [appState,       setAppState]       = useState("idle");
 
-  // Poll job status while processing
-  const { status, progress, step, totalSteps, losses, resultUrl, error: pollError } =
-    useJobPoller(jobId);
+  const { status, progress, step, totalSteps, losses, resultUrl, error: pollError } = useJobPoller(jobId);
 
-  // ── Load presets on mount ───────────────────────────────
   useEffect(() => {
-    fetchStyles()
-      .then((data) => setPresets(data.presets || []))
-      .catch(() => toast.error("Could not load style presets. Is the backend running?"));
+    fetchStyles().then(d => setPresets(d.presets||[])).catch(() => toast.error("Backend not responding"));
   }, []);
 
-  // ── Sync job status → appState ──────────────────────────
   useEffect(() => {
     if (!jobId) return;
     if (status === "completed") setAppState("done");
     if (status === "failed")    setAppState("error");
   }, [status, jobId]);
 
-  // ── Derived: can we submit? ─────────────────────────────
+  const applyMode = (key) => {
+    setSubjectMode(key);
+    const m = SUBJECT_MODES[key];
+    setNumSteps(m.numSteps); setContentWeight(m.contentWeight); setStyleWeight(m.styleWeight);
+  };
+
   const hasStyle  = selectedPreset || styleFile;
   const canSubmit = contentFile && hasStyle && appState === "idle";
 
-  // ── Submit job ──────────────────────────────────────────
   const handleStylize = async () => {
     if (!canSubmit) return;
     try {
       setAppState("processing");
       const data = await submitStylizeJob(
-        contentFile,
-        useCustomStyle ? styleFile : null,
+        contentFile, useCustomStyle ? styleFile : null,
         useCustomStyle ? null : selectedPreset?.key,
         { num_steps: numSteps, content_weight: contentWeight, style_weight: styleWeight }
       );
       setJobId(data.job_id);
-      toast.success("Job started! Sit back while AI works its magic 🎨");
-    } catch (err) {
-      toast.error(err.message || "Failed to start job.");
-      setAppState("idle");
-    }
+      toast.success("AI is painting your image! 🎨");
+    } catch (err) { toast.error(err.message||"Failed to start."); setAppState("idle"); }
   };
 
-  // ── Reset ───────────────────────────────────────────────
   const handleReset = () => {
-    setContentFile(null);
-    setStyleFile(null);
-    setSelectedPreset(null);
-    setJobId(null);
-    setAppState("idle");
+    setContentFile(null); setStyleFile(null); setSelectedPreset(null); setJobId(null); setAppState("idle");
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* ── Header ── */}
-      <header className="border-b border-white/5 bg-gray-950/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">🎨</div>
+    <div style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
+
+      {/* ══ HEADER ══════════════════════════════════ */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        borderBottom: "1px solid var(--border)",
+        background: "color-mix(in srgb, var(--bg-surface) 88%, transparent)",
+        backdropFilter: "blur(16px)",
+      }}>
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Logo area */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl animate-float"
+                 style={{ background: "linear-gradient(135deg, var(--sage), var(--mauve))", flexShrink:0 }}>
+              🎨
+            </div>
             <div>
-              <h1 className="text-lg font-semibold text-white leading-none">
+              <div style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:"1.35rem", color:"var(--text-primary)", lineHeight:1.2, letterSpacing:"-0.01em" }}>
                 Neural Style Transfer
-              </h1>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Powered by VGG-19 + PyTorch
-              </p>
+              </div>
+              {/* Always-animating tagline */}
+              <div style={{ position:"relative", height:20, overflow:"hidden", width:280, marginTop:3 }}>
+                {TAGLINES.map((t,i) => (
+                  <div key={i} className="tagline-item"
+                       style={{ fontSize:12, color:"var(--mauve-dark)", fontStyle:"italic", lineHeight:1.5, fontWeight:500 }}>
+                    {t}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-            >
-              <Github size={15} /> GitHub
+
+          {/* Nav */}
+          <div className="flex items-center gap-2">
+            <a href="https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer"
+               target="_blank" rel="noreferrer"
+               className="tag-mauve flex items-center gap-2 hover:opacity-80 transition-opacity" style={{fontSize:14,padding:"6px 16px"}}>
+              <Github size={16}/> GitHub
             </a>
-            <a
-              href="https://colab.research.google.com/github/TUSHARTAMRAKAR/Neural-Style-Transfer/blob/main/notebook/nst_colab.ipynb"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-            >
-              <BookOpen size={15} /> Colab
+            <a href="https://colab.research.google.com/github/TUSHARTAMRAKAR/Neural-Style-Transfer/blob/main/notebook/nst_colab.ipynb"
+               target="_blank" rel="noreferrer"
+               className="tag-mauve flex items-center gap-2 hover:opacity-80 transition-opacity" style={{fontSize:14,padding:"6px 16px"}}>
+              <BookOpen size={16}/> Colab
             </a>
+            <button onClick={() => setDark(!dark)}
+                    title={dark?"Light mode":"Dark mode"}
+                    className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-110"
+                    style={{ background:"var(--bg-elevated)", border:"1px solid var(--border)" }}>
+              {dark
+                ? <Sun  size={18} style={{ color:"var(--rose)" }}/>
+                : <Moon size={18} style={{ color:"var(--mauve-dark)" }}/>}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ── Main content ── */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      {/* ══ MAIN ══════════════════════════════════ */}
+      <main className="max-w-5xl mx-auto px-4 py-10">
 
         {/* Hero */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+        <div className="text-center mb-12 animate-fadeup">
+          <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:"clamp(2rem,5vw,3rem)", fontWeight:800, color:"var(--text-primary)", marginBottom:10 }}>
             Turn your photos into{" "}
-            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              masterpieces
-            </span>
+            <span className="shimmer-text">masterpieces</span>
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">
-            Upload your photo, pick an artistic style, and watch deep learning
-            paint your image in the style of Van Gogh, Hokusai, or Kandinsky.
+
+          {/* Subtitle with rose accent */}
+          <p style={{ color:"var(--text-secondary)", maxWidth:560, margin:"0 auto", fontSize:17, lineHeight:1.85 }}>
+            Upload your photo, pick a master artwork, and watch{" "}
+            <span style={{ color:"var(--forest)", fontWeight:500 }}>VGG-19 deep learning</span>{" "}
+            paint it in that exact artistic style — powered by{" "}
+            <span style={{ color:"var(--mauve-dark)", fontWeight:500 }}>Gram matrix optimization</span>.
           </p>
+
+          {/* Wildflowers palette swatches — all 4 visible */}
+          <div className="flex justify-center gap-3 mt-6">
+            {[
+              { color:"#A8DCAB", label:"Sage — upload zones" },
+              { color:"#519755", label:"Forest — actions" },
+              { color:"#DBAAA7", label:"Rose — accents" },
+              { color:"#BE91BE", label:"Mauve — tags" },
+            ].map(({ color, label }) => (
+              <div key={color} title={label}
+                   className="w-9 h-9 rounded-full shadow-md hover:scale-110 transition-transform cursor-default"
+                   style={{ background:color, boxShadow:`0 2px 8px ${color}55` }}/>
+            ))}
+          </div>
         </div>
 
+        {/* ══ DONE STATE ═══ */}
         {appState === "done" ? (
-          /* ── Result view ── */
-          <div className="max-w-2xl mx-auto">
-            <ResultViewer resultUrl={resultUrl} contentFile={contentFile} onReset={handleReset} />
+          <div className="max-w-2xl mx-auto animate-fadeup">
+            <ResultViewer resultUrl={resultUrl} contentFile={contentFile} onReset={handleReset}/>
           </div>
-        ) : appState === "processing" ? (
-          /* ── Progress view ── */
-          <div className="max-w-xl mx-auto">
-            <ProgressBar
-              status={status}
-              progress={progress}
-              step={step}
-              totalSteps={totalSteps}
-              losses={losses}
-            />
-          </div>
-        ) : (
-          /* ── Upload + configure view ── */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* LEFT: content + style upload */}
-            <div className="flex flex-col gap-6">
+        ) : appState === "processing" ? (
+        /* ══ PROCESSING STATE ═══ */
+          <div className="max-w-xl mx-auto animate-fadeup">
+            <ProgressBar status={status} progress={progress} step={step} totalSteps={totalSteps} losses={losses}/>
+          </div>
+
+        ) : (
+        /* ══ IDLE STATE ═══ */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeup">
+
+            {/* LEFT */}
+            <div className="flex flex-col gap-5">
+              {/* Upload panel — SAGE colored */}
               <UploadPanel
                 label="Your photo (content image)"
                 hint="JPG, PNG or WEBP · any size"
-                file={contentFile}
-                onFile={setContentFile}
+                file={contentFile} onFile={setContentFile}
               />
 
-              {/* Style source toggle */}
-              <div className="flex rounded-lg overflow-hidden border border-white/10 text-sm">
-                <button
-                  onClick={() => setUseCustomStyle(false)}
-                  className={`flex-1 py-2.5 font-medium transition-colors ${
-                    !useCustomStyle
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Use preset
-                </button>
-                <button
-                  onClick={() => setUseCustomStyle(true)}
-                  className={`flex-1 py-2.5 font-medium transition-colors ${
-                    useCustomStyle
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Custom artwork
-                </button>
+              {/* Toggle — Forest colored active state */}
+              <div className="flex rounded-2xl overflow-hidden" style={{ border:"1px solid var(--border)" }}>
+                {[["preset","Use preset"],["custom","Custom artwork"]].map(([v,lbl]) => (
+                  <button key={v} onClick={() => setUseCustomStyle(v==="custom")}
+                          className="flex-1 py-2.5 text-sm font-medium transition-all"
+                          style={{
+                            background: (v==="custom")===useCustomStyle ? "var(--forest)" : "var(--bg-elevated)",
+                            color:      (v==="custom")===useCustomStyle ? "#fff" : "var(--text-secondary)",
+                          }}>
+                    {lbl}
+                  </button>
+                ))}
               </div>
 
-              {useCustomStyle ? (
-                <UploadPanel
-                  label="Your artwork (style image)"
-                  hint="Any painting or texture — JPG, PNG"
-                  file={styleFile}
-                  onFile={setStyleFile}
-                />
-              ) : (
-                <StyleGallery
-                  presets={presets}
-                  selected={selectedPreset}
-                  onSelect={setSelectedPreset}
-                />
-              )}
+              {useCustomStyle
+                ? <UploadPanel label="Your artwork (style image)" hint="Any painting · JPG, PNG" file={styleFile} onFile={setStyleFile}/>
+                : <StyleGallery presets={presets} selected={selectedPreset} onSelect={setSelectedPreset}/>
+              }
             </div>
 
-            {/* RIGHT: settings + submit */}
-            <div className="flex flex-col gap-6">
-              {/* Subject mode picker — most important setting */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col gap-3">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                  What are you stylizing?
-                </p>
+            {/* RIGHT */}
+            <div className="flex flex-col gap-5">
+
+              {/* Subject mode — MAUVE selected state */}
+              <div className="card p-5">
+                <p className="tag-mauve inline-block mb-3">What are you stylizing?</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(SUBJECT_PRESETS).map(([mode, p]) => (
-                    <button
-                      key={mode}
-                      onClick={() => applySubjectMode(mode)}
-                      className={`py-2 px-2 rounded-lg text-xs font-medium transition-all border
-                        ${subjectMode === mode
-                          ? "bg-indigo-600 text-white border-indigo-500"
-                          : "bg-white/5 text-gray-400 border-white/10 hover:text-white hover:border-white/20"
-                        }`}
-                    >
-                      {mode === "portrait" ? "🧑 Portrait" : mode === "landscape" ? "🌄 Landscape" : "🎨 Abstract"}
+                  {Object.entries(SUBJECT_MODES).map(([key, m]) => (
+                    <button key={key} onClick={() => applyMode(key)}
+                            className="py-4 px-3 rounded-xl text-sm font-medium transition-all text-center"
+                            style={{
+                              background:  subjectMode===key ? "var(--mauve-muted)" : "var(--bg-elevated)",
+                              color:       subjectMode===key ? "var(--mauve-dark)" : "var(--text-secondary)",
+                              border:      `1.5px solid ${subjectMode===key ? "var(--mauve)" : "var(--border)"}`,
+                              transform:   subjectMode===key ? "scale(1.04)" : "scale(1)",
+                              fontWeight:  subjectMode===key ? 600 : 400,
+                            }}>
+                      <div style={{ fontSize:24, marginBottom:6 }}>{m.emoji}</div>
+                      {m.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-500 leading-relaxed">
-                  {SUBJECT_PRESETS[subjectMode].hint}
+                <p style={{ fontSize:13, color:"var(--text-tertiary)", marginTop:10, fontStyle:"italic" }}>
+                  {SUBJECT_MODES[subjectMode].hint}
                 </p>
               </div>
 
-              {/* Advanced settings */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white transition-colors"
-                >
-                  <Settings size={15} className="text-gray-500" />
+              {/* Advanced — ROSE accent on values */}
+              <div className="card p-5">
+                <button onClick={() => setShowAdvanced(!showAdvanced)}
+                        className="w-full flex items-center gap-2 text-base hover:opacity-80 transition-opacity"
+                        style={{ color:"var(--text-secondary)" }}>
+                  <Settings size={14} style={{ color:"var(--rose-dark)" }}/>
                   Fine-tune settings
-                  <span className="ml-auto text-gray-600 text-xs">
-                    {showAdvanced ? "▲" : "▼"}
+                  <span style={{ marginLeft:"auto", color:"var(--text-tertiary)", fontSize:11 }}>
+                    {showAdvanced?"▲":"▼"}
                   </span>
                 </button>
-
                 {showAdvanced && (
-                  <div className="px-4 pb-4 flex flex-col gap-3 border-t border-white/5">
-                    {/* Live value display */}
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                      {[
-                        { label: "Steps",   value: numSteps },
-                        { label: "Style",   value: styleWeight >= 1e9 ? `${(styleWeight/1e9).toFixed(1)}B` : `${(styleWeight/1e6).toFixed(0)}M` },
-                        { label: "Content", value: contentWeight >= 1000 ? `${(contentWeight/1000).toFixed(0)}K` : contentWeight },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="bg-gray-900/60 rounded-lg p-2">
-                          <p className="text-[10px] text-gray-500">{label}</p>
-                          <p className="text-xs font-mono text-indigo-300 font-medium">{value}</p>
+                  <div className="flex flex-col gap-4 pt-4 mt-3" style={{ borderTop:"1px solid var(--border)" }}>
+                    {[
+                      { label:"Quality steps", hint:"More = better, slower", min:50, max:500, step:50, val:numSteps, set:setNumSteps, disp:numSteps },
+                      { label:"Style strength", hint:"Higher = more painterly",
+                        min:1, max:10, step:1,
+                        val:Math.round(Math.log10(styleWeight/1e8)*2+5),
+                        set:(v)=>setStyleWeight(Math.pow(10,(v-5)/2+8)),
+                        disp:styleWeight>=1e9?`${(styleWeight/1e9).toFixed(1)}B`:`${(styleWeight/1e6).toFixed(0)}M` },
+                      { label:"Content preservation", hint:"Higher = photo-like",
+                        min:1, max:10, step:1,
+                        val:Math.round(Math.log10(contentWeight)-1),
+                        set:(v)=>setContentWeight(Math.pow(10,v+1)),
+                        disp:contentWeight>=1000?`${(contentWeight/1000).toFixed(1)}K`:contentWeight },
+                    ].map(({ label,hint,min,max,step,val,set,disp }) => (
+                      <div key={label} className="flex flex-col gap-1">
+                        <div className="flex justify-between">
+                          <span style={{ fontSize:12, fontWeight:500, color:"var(--text-secondary)" }}>{label}</span>
+                          <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", color:"var(--rose-dark)", fontWeight:500 }}>{disp}</span>
                         </div>
-                      ))}
-                    </div>
-
-                    <Slider
-                      label="Quality steps"
-                      hint="100=fast preview · 300=good · 500=best quality"
-                      min={50} max={500} step={50}
-                      value={numSteps}
-                      onChange={setNumSteps}
-                    />
-
-                    <div className="flex flex-col gap-1.5 mt-2">
-                      <div className="flex justify-between">
-                        <span className="text-xs font-medium text-gray-300">Style strength</span>
-                        <span className="text-xs font-mono text-indigo-400">
-                          {styleWeight >= 1e9 ? `${(styleWeight/1e9).toFixed(1)}B` : `${(styleWeight/1e6).toFixed(0)}M`}
-                        </span>
+                        <input type="range" min={min} max={max} step={step} value={val}
+                               onChange={e=>set(Number(e.target.value))} className="w-full"/>
+                        <p style={{ fontSize:10, color:"var(--text-tertiary)" }}>{hint}</p>
                       </div>
-                      <input type="range" min={1} max={100} step={1}
-                        value={Math.round(styleWeight / 10000000)}
-                        onChange={(e) => setStyleWeight(Number(e.target.value) * 10000000)}
-                        className="w-full accent-indigo-500"
-                      />
-                      <div className="flex justify-between text-[10px] text-gray-600">
-                        <span>Subtle (10M)</span><span>Portrait (100M)</span><span>Scene (500M)</span><span>Max (1B)</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs font-medium text-gray-300">Content preservation</span>
-                        <span className="text-xs font-mono text-indigo-400">
-                          {contentWeight >= 1000 ? `${(contentWeight/1000).toFixed(0)}K` : contentWeight}
-                        </span>
-                      </div>
-                      <input type="range" min={100} max={50000} step={100}
-                        value={contentWeight}
-                        onChange={(e) => setContentWeight(Number(e.target.value))}
-                        className="w-full accent-indigo-500"
-                      />
-                      <div className="flex justify-between text-[10px] text-gray-600">
-                        <span>Abstract (100)</span><span>Portrait (10K)</span><span>Photo-like (50K)</span>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-gray-600 mt-1 text-center">
-                      Tip: Use the subject buttons above to reset to recommended values
-                    </p>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* How it works */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <p className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">
-                  How it works
-                </p>
-                <ol className="flex flex-col gap-2">
+              {/* How it works — SAGE numbered steps */}
+              <div className="card p-5">
+                <p className="tag-mauve inline-block mb-3">How it works</p>
+                <ol className="flex flex-col gap-2.5">
                   {[
-                    ["1", "VGG-19 extracts features from both images"],
-                    ["2", "Content loss preserves your photo's structure"],
-                    ["3", "Style loss (Gram matrices) captures texture"],
-                    ["4", "L-BFGS optimizer blends them iteratively"],
-                  ].map(([n, text]) => (
-                    <li key={n} className="flex items-start gap-2.5 text-xs text-gray-500">
-                      <span className="w-4 h-4 rounded-full bg-indigo-950 text-indigo-400 flex items-center justify-center flex-shrink-0 font-medium text-[10px]">
-                        {n}
+                    { text:"VGG-19 extracts features from both images",    color:"var(--sage-dark)" },
+                    { text:"Content loss preserves your photo's structure", color:"var(--forest)" },
+                    { text:"Style loss via Gram matrices captures texture", color:"var(--mauve-dark)" },
+                    { text:"L-BFGS optimizer blends them iteratively",      color:"var(--rose-dark)" },
+                  ].map(({ text, color }, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm" style={{ color:"var(--text-secondary)" }}>
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-xs"
+                            style={{ background:`${color}22`, color, border:`1px solid ${color}55` }}>
+                        {i+1}
                       </span>
                       {text}
                     </li>
@@ -360,149 +309,90 @@ export default function App() {
                 </ol>
               </div>
 
-              {/* Submit button */}
-              <button
-                onClick={handleStylize}
-                disabled={!canSubmit}
-                className={`
-                  w-full flex items-center justify-center gap-2.5 py-4 rounded-xl
-                  text-base font-semibold transition-all duration-200
-                  ${canSubmit
-                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40 hover:scale-[1.01]"
-                    : "bg-white/5 text-gray-600 cursor-not-allowed"
-                  }
-                `}
-              >
-                <Sparkles size={18} />
-                {canSubmit
-                  ? "Stylize my image"
-                  : !contentFile
-                    ? "Upload your photo first"
-                    : !hasStyle
-                      ? "Pick a style"
-                      : "Ready!"}
+              {/* Submit — FOREST button */}
+              <button onClick={handleStylize} disabled={!canSubmit}
+                      className={`w-full flex items-center justify-center gap-2.5 py-5 rounded-2xl text-lg font-semibold transition-all ${canSubmit?"btn-forest":""}`}
+                      style={!canSubmit?{ background:"var(--bg-elevated)", color:"var(--text-tertiary)", border:"1px solid var(--border)", cursor:"not-allowed" }:{}}>
+                <Sparkles size={20}/>
+                {!contentFile ? "Upload your photo first" : !hasStyle ? "Pick a style" : "Stylize my image"}
               </button>
-
-              {!canSubmit && contentFile && (
-                <p className="text-center text-xs text-gray-600">
-                  {!hasStyle ? "Select a preset or upload a custom style image" : ""}
-                </p>
-              )}
             </div>
           </div>
         )}
 
-        {/* Error banner */}
-        {(appState === "error" || pollError) && (
-          <div className="mt-6 p-4 rounded-xl bg-red-950/40 border border-red-800/30 text-sm text-red-300">
-            <strong>Error:</strong> {pollError || "Style transfer failed. Please try again."}
-            <button
-              onClick={handleReset}
-              className="ml-3 underline text-red-400 hover:text-white"
-            >
-              Reset
-            </button>
+        {/* Error — ROSE */}
+        {(appState==="error"||pollError) && (
+          <div className="mt-6 p-4 alert-rose text-sm">
+            <strong>Error:</strong> {pollError||"Style transfer failed."}
+            <button onClick={handleReset} className="ml-3 underline">Reset</button>
           </div>
         )}
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/5 mt-20">
+      {/* ══ FOOTER ═══════════════════════════════════ */}
+      <footer style={{ borderTop:"1px solid var(--border)", marginTop:80 }}>
+        <div className="max-w-5xl mx-auto px-4 pt-10 pb-8">
 
-        {/* Tech stack cards */}
-        <div className="max-w-5xl mx-auto px-4 pt-10 pb-6">
+          {/* Tech stack — each card uses a different accent color */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
             {[
-              { icon: "🧠", title: "AI Engine",    desc: "VGG-19 + PyTorch\nGram Matrix Optimization" },
-              { icon: "⚡", title: "Backend",      desc: "FastAPI + Uvicorn\nAsync Job Queue" },
-              { icon: "⚛️", title: "Frontend",    desc: "React 18 + Vite\nTailwindCSS" },
-              { icon: "☁️", title: "Cloud",        desc: "Hugging Face Spaces\nGoogle Colab GPU" },
-            ].map(({ icon, title, desc }) => (
-              <div key={title} className="flex flex-col items-center text-center gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                <span className="text-2xl">{icon}</span>
-                <p className="text-xs font-medium text-gray-300">{title}</p>
-                <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">{desc}</p>
+              { icon:"🧠", title:"AI Engine",  desc:"VGG-19 · PyTorch\nGram Matrix",   accent:"var(--sage-dark)",   bg:"var(--sage-muted)" },
+              { icon:"⚡", title:"Backend",    desc:"FastAPI · Uvicorn\nAsync Jobs",    accent:"var(--forest)",      bg:"var(--forest-muted)" },
+              { icon:"⚛️", title:"Frontend",  desc:"React 18 · Vite\nTailwindCSS",     accent:"var(--rose-dark)",   bg:"var(--rose-muted)" },
+              { icon:"☁️", title:"Cloud",      desc:"Vercel · Render\nHF Spaces",       accent:"var(--mauve-dark)",  bg:"var(--mauve-muted)" },
+            ].map(({ icon,title,desc,accent,bg }) => (
+              <div key={title}
+                   className="flex flex-col items-center text-center gap-3 p-6 rounded-2xl transition-all hover:scale-105"
+                   style={{ background:bg, border:`1px solid ${accent}33` }}>
+                <span className="text-3xl">{icon}</span>
+                <p style={{ fontSize:14, fontWeight:600, color:accent }}>{title}</p>
+                <p style={{ fontSize:12, color:"var(--text-tertiary)", lineHeight:1.8, whiteSpace:"pre-line" }}>{desc}</p>
               </div>
             ))}
           </div>
 
-          {/* Gradient divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
+          <div style={{ height:1, background:"linear-gradient(to right,transparent,var(--border),transparent)", marginBottom:24 }}/>
 
           {/* Links */}
-          <div className="flex flex-wrap justify-center gap-6 mb-8">
+          <div className="flex flex-wrap justify-center gap-5 mb-8">
             {[
-              { label: "GitHub",         href: "https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer", icon: "⭐" },
-              { label: "Live Demo",      href: "https://huggingface.co/spaces/TUSHARTAMRAKAR/neural-style-transfer", icon: "🌐" },
-              { label: "Colab Notebook", href: "https://colab.research.google.com/github/TUSHARTAMRAKAR/neural-style-transfer/blob/main/notebook/nst_colab.ipynb", icon: "📓" },
-              { label: "API Docs",       href: "http://localhost:8000/docs", icon: "📡" },
-              { label: "Original Paper", href: "https://arxiv.org/abs/1508.06576", icon: "📄" },
-            ].map(({ label, href, icon }) => (
+              { label:"GitHub",   href:"https://github.com/TUSHARTAMRAKAR/Neural-Style-Transfer", icon:"⭐", color:"var(--forest)" },
+              { label:"Live App", href:"https://neural-style-transfer-pied.vercel.app",            icon:"🌐", color:"var(--sage-dark)" },
+              { label:"Colab",    href:"https://colab.research.google.com/github/TUSHARTAMRAKAR/Neural-Style-Transfer/blob/main/notebook/nst_colab.ipynb", icon:"📓", color:"var(--mauve-dark)" },
+              { label:"API Docs", href:"https://neural-style-transfer-api.onrender.com/docs",      icon:"📡", color:"var(--rose-dark)" },
+              { label:"Paper",    href:"https://arxiv.org/abs/1508.06576",                         icon:"📄", color:"var(--forest)" },
+            ].map(({ label,href,icon,color }) => (
               <a key={label} href={href} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-400 transition-colors">
+                 className="flex items-center gap-2 text-sm hover:opacity-80 transition-all hover:scale-105"
+                 style={{ color }}>
                 <span>{icon}</span>{label}
               </a>
             ))}
           </div>
 
-          {/* Gradient divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
-
-          {/* Research citation */}
-          <div className="text-center mb-8">
-            <p className="text-[11px] text-gray-600 leading-relaxed">
-              Based on{" "}
-              <a href="https://arxiv.org/abs/1508.06576" target="_blank" rel="noreferrer"
-                className="text-indigo-500/70 hover:text-indigo-400 transition-colors">
-                Gatys, Ecker & Bethge — "A Neural Algorithm of Artistic Style" (2015)
-              </a>
-              {" "}·{" "}
-              <a href="https://arxiv.org/abs/1409.1556" target="_blank" rel="noreferrer"
-                className="text-indigo-500/70 hover:text-indigo-400 transition-colors">
-                VGG-19 by Simonyan & Zisserman (2014)
-              </a>
-            </p>
-          </div>
+          <div style={{ height:1, background:"linear-gradient(to right,transparent,var(--border),transparent)", marginBottom:24 }}/>
 
           {/* Made with love */}
-          <div className="text-center pb-10">
-            <p className="text-sm text-gray-500">
-              Made with{" "}
-              <span className="text-red-500 animate-pulse inline-block">❤️</span>
-              {" "}by{" "}
+          <div className="text-center">
+            <p style={{ fontSize:17, color:"var(--text-secondary)" }}>
+              Made with <span style={{ color:"var(--rose)", display:"inline-block" }} className="animate-pulse">❤️</span> by{" "}
               <a href="https://github.com/TUSHARTAMRAKAR" target="_blank" rel="noreferrer"
-                className="font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent hover:from-indigo-300 hover:to-purple-300 transition-all">
+                 className="shimmer-text font-semibold" style={{ textDecoration:"none" }}>
                 Tushar Tamrakar
               </a>
             </p>
-            <p className="text-[11px] text-gray-700 mt-2">
+            <p style={{ fontSize:13, color:"var(--text-tertiary)", marginTop:8 }}>
               © {new Date().getFullYear()} Neural Style Transfer · MIT License
             </p>
+            {/* Wildflowers palette strip */}
+            <div className="flex justify-center gap-0 mt-5 overflow-hidden rounded-full w-32 mx-auto" style={{ height:4 }}>
+              {["#A8DCAB","#519755","#DBAAA7","#BE91BE"].map(c=>(
+                <div key={c} style={{ flex:1, background:c }}/>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-/* ── Reusable Slider component ── */
-function Slider({ label, hint, min, max, step, value, onChange, displayValue }) {
-  return (
-    <div className="flex flex-col gap-1.5 mt-3">
-      <div className="flex justify-between items-baseline">
-        <span className="text-xs font-medium text-gray-300">{label}</span>
-        <span className="text-xs font-mono text-indigo-400">
-          {displayValue ?? value}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min} max={max} step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-indigo-500"
-      />
-      <p className="text-[10px] text-gray-600">{hint}</p>
     </div>
   );
 }
