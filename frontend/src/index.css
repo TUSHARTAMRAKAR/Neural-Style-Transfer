@@ -2,23 +2,268 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ══════════════════════════════════════════════
+   WILDFLOWERS PALETTE — all 4 colors in use
+   Sage    #A8DCAB  — upload zones, success states
+   Forest  #519755  — primary buttons, CTAs
+   Rose    #DBAAA7  — warnings, errors, accents
+   Mauve   #BE91BE  — secondary accents, tags, icons
+   ══════════════════════════════════════════════ */
+
+:root {
+  /* Backgrounds */
+  --bg-base:       #F9F6F1;
+  --bg-surface:    #FFFFFF;
+  --bg-elevated:   #F2EDE6;
+  --bg-overlay:    #EAE4DC;
+
+  /* Text */
+  --text-primary:  #1C2B1E;
+  --text-secondary:#4A5E4C;
+  --text-tertiary: #7A8E7C;
+  --text-inverse:  #FFFFFF;
+
+  /* Wildflowers — all 4 colors */
+  --sage:          #A8DCAB;
+  --sage-light:    #D4EDCB;
+  --sage-dark:     #7BB87E;
+  --sage-muted:    rgba(168,220,171,0.15);
+
+  --forest:        #519755;
+  --forest-light:  #6DB371;
+  --forest-dark:   #3A7040;
+  --forest-muted:  rgba(81,151,85,0.12);
+
+  --rose:          #DBAAA7;
+  --rose-light:    #EDD0CE;
+  --rose-dark:     #C08A87;
+  --rose-muted:    rgba(219,170,167,0.15);
+
+  --mauve:         #BE91BE;
+  --mauve-light:   #D9B8D9;
+  --mauve-dark:    #9E6F9E;
+  --mauve-muted:   rgba(190,145,190,0.15);
+
+  /* Borders */
+  --border:        #DDD8CF;
+  --border-strong: #C8C2B8;
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(28,43,30,0.08);
+  --shadow-md:     0 4px 16px rgba(28,43,30,0.10);
+  --shadow-lg:     0 8px 32px rgba(28,43,30,0.12);
+
+  /* Specific semantic uses */
+  --btn-primary:   var(--forest);
+  --btn-primary-h: var(--forest-light);
+  --upload-border: var(--sage-dark);
+  --upload-bg:     var(--sage-muted);
+  --tag-bg:        var(--mauve-muted);
+  --tag-color:     var(--mauve-dark);
+  --accent-rose:   var(--rose);
+  --progress-from: var(--sage);
+  --progress-to:   var(--forest);
+}
+
+.dark {
+  --bg-base:       #141A15;
+  --bg-surface:    #1B2420;
+  --bg-elevated:   #202D24;
+  --bg-overlay:    #253329;
+
+  --text-primary:  #EDF5EE;
+  --text-secondary:#A8DCAB;
+  --text-tertiary: #7BB87E;
+
+  --sage-muted:    rgba(168,220,171,0.10);
+  --forest-muted:  rgba(81,151,85,0.15);
+  --rose-muted:    rgba(219,170,167,0.12);
+  --mauve-muted:   rgba(190,145,190,0.12);
+
+  --border:        #2A3D2C;
+  --border-strong: #3A5440;
+
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.5);
+
+  --upload-bg:     rgba(168,220,171,0.06);
+  --tag-bg:        rgba(190,145,190,0.15);
+  --tag-color:     var(--mauve-light);
+}
+
+/* ── Base ── */
 @layer base {
+  html { scroll-behavior: smooth; }
   body {
-    @apply bg-gray-950 text-gray-100 antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.35s ease, color 0.25s ease;
   }
+  h1,h2,h3,h4 {
+    font-family: 'Playfair Display', Georgia, serif;
+    line-height: 1.2;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
 }
 
-@layer utilities {
-  .glass {
-    @apply bg-white/5 backdrop-blur-sm border border-white/10;
-  }
-  .gradient-text {
-    @apply bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent;
-  }
+/* ── Keyframes ── */
+@keyframes tagline-slide {
+  0%   { opacity:0; transform: translateY(6px); }
+  8%   { opacity:1; transform: translateY(0); }
+  30%  { opacity:1; transform: translateY(0); }
+  38%  { opacity:0; transform: translateY(-6px); }
+  100% { opacity:0; transform: translateY(-6px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(81,151,85,0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(81,151,85,0); }
+  100% { box-shadow: 0 0 0 0 rgba(81,151,85,0); }
+}
+@keyframes progress-stripe {
+  0%   { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(12px); }
+  to   { opacity:1; transform: translateY(0); }
 }
 
-/* Smooth scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0f0a1e; }
-::-webkit-scrollbar-thumb { background: #4338ca; border-radius: 3px; }
+/* ── Tagline cycling animation ── */
+.tagline-item {
+  position: absolute;
+  width: 100%;
+  animation: tagline-slide 12s infinite;
+  opacity: 0;
+}
+.tagline-item:nth-child(1) { animation-delay: 0s; }
+.tagline-item:nth-child(2) { animation-delay: 4s; }
+.tagline-item:nth-child(3) { animation-delay: 8s; }
+
+/* ── Shimmer text ── */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--forest) 0%,
+    var(--sage) 25%,
+    var(--mauve) 50%,
+    var(--rose-dark) 75%,
+    var(--forest) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* ── Sage upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--sage-dark);
+  background: var(--upload-bg);
+  transform: scale(1.005);
+}
+.upload-zone.has-file { border-style: solid; border-color: var(--sage-dark); }
+
+/* ── Forest primary button ── */
+.btn-forest {
+  background: var(--forest);
+  color: #fff;
+  border-radius: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 20px rgba(81,151,85,0.30);
+  transition: all 0.2s ease;
+}
+.btn-forest:hover:not(:disabled) {
+  background: var(--forest-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(81,151,85,0.40);
+}
+.btn-forest:disabled { background: var(--bg-elevated); color: var(--text-tertiary); box-shadow: none; }
+
+/* ── Mauve tag ── */
+.tag-mauve {
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border: 1px solid var(--mauve-muted);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Rose alert ── */
+.alert-rose {
+  background: var(--rose-muted);
+  border: 1px solid var(--rose);
+  border-radius: 14px;
+  color: var(--rose-dark);
+}
+
+/* ── Progress bar — sage to forest gradient ── */
+.progress-track {
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  overflow: hidden;
+  height: 8px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--sage), var(--forest));
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+  transition: width 0.5s ease;
+}
+
+/* ── Style card selected — mauve ring ── */
+.style-card-selected {
+  border-color: var(--mauve-dark) !important;
+  box-shadow: 0 0 0 3px var(--mauve-muted), var(--shadow-md);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-elevated); }
+::-webkit-scrollbar-thumb { background: var(--sage-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--forest); }
+
+/* ── Range slider ── */
+input[type=range] { accent-color: var(--forest); }
+
+/* ── Animations utility ── */
+.animate-fadeup  { animation: fadeUp 0.4s ease both; }
+.animate-float   { animation: float 3s ease-in-out infinite; }
+.animate-pulse-ring { animation: pulse-ring 2s ease infinite; }

@@ -1,111 +1,77 @@
-/**
- * UploadPanel.jsx
- * Drag-and-drop (or click-to-browse) image upload zone.
- * Shows preview after file is selected.
- */
-
 import { useRef, useState, useCallback } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 
-export default function UploadPanel({ label, hint, file, onFile, accept = "image/*" }) {
-  const inputRef  = useRef(null);
-  const [dragging, setDragging] = useState(false);
+export default function UploadPanel({ label, hint, file, onFile }) {
+  const inputRef   = useRef(null);
+  const [drag, setDrag] = useState(false);
+  const preview    = file ? URL.createObjectURL(file) : null;
 
-  const preview = file ? URL.createObjectURL(file) : null;
+  const handleFile = useCallback((f) => {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { alert("Please upload an image file."); return; }
+    onFile(f);
+  }, [onFile]);
 
-  const handleFile = useCallback(
-    (f) => {
-      if (!f) return;
-      if (!f.type.startsWith("image/")) {
-        alert("Please upload an image file (JPG, PNG, WEBP).");
-        return;
-      }
-      onFile(f);
-    },
-    [onFile]
-  );
-
-  const onDrop = (e) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    handleFile(f);
-  };
-
-  const onInputChange = (e) => handleFile(e.target.files[0]);
+  const onDrop = (e) => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Label */}
       <div className="flex items-center gap-2">
-        <ImageIcon size={16} className="text-indigo-400" />
-        <span className="text-sm font-medium text-gray-300">{label}</span>
+        <ImageIcon size={14} style={{ color: "var(--forest)" }} />
+        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>{label}</span>
       </div>
 
-      {/* Drop zone */}
       <div
         onClick={() => !file && inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
         onDrop={onDrop}
-        className={`
-          relative rounded-xl border-2 border-dashed transition-all duration-200 overflow-hidden
-          ${file ? "border-indigo-500/50 cursor-default" : "cursor-pointer hover:border-indigo-400"}
-          ${dragging ? "border-indigo-400 bg-indigo-950/50 scale-[1.01]" : "border-white/10"}
-          ${!file ? "bg-white/[0.02] hover:bg-white/[0.04]" : ""}
-        `}
-        style={{ minHeight: "180px" }}
+        className="relative rounded-2xl overflow-hidden transition-all duration-200"
+        style={{
+          minHeight: 180,
+          border: `2px dashed ${drag ? "var(--forest)" : file ? "var(--sage-dark)" : "var(--border)"}`,
+          background: drag ? "rgba(168,220,171,0.08)" : "var(--bg-elevated)",
+          cursor: file ? "default" : "pointer",
+          transform: drag ? "scale(1.01)" : "scale(1)",
+        }}
       >
         {file && preview ? (
-          /* Image preview */
           <>
-            <img
-              src={preview}
-              alt="preview"
-              className="w-full h-48 object-cover rounded-xl"
-            />
-            {/* Remove button */}
+            <img src={preview} alt="preview"
+                 className="w-full object-cover"
+                 style={{ height: 180 }} />
             <button
               onClick={(e) => { e.stopPropagation(); onFile(null); }}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-red-900/80 text-white transition-colors"
-              title="Remove image"
-            >
-              <X size={14} />
+              className="absolute top-2 right-2 p-1.5 rounded-full transition-colors"
+              style={{ background: "rgba(0,0,0,0.6)" }}>
+              <X size={14} color="white" />
             </button>
-            {/* Filename badge */}
             <div className="absolute bottom-2 left-2 right-2">
-              <span className="text-xs bg-black/70 text-gray-300 px-2 py-1 rounded-md truncate block">
+              <span className="text-xs px-2 py-1 rounded-md truncate block"
+                    style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
                 {file.name}
               </span>
             </div>
           </>
         ) : (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center h-full py-10 gap-3 text-center px-4">
-            <div className="p-3 rounded-full bg-indigo-950/60 text-indigo-400">
-              <Upload size={22} />
+          <div className="flex flex-col items-center justify-center py-10 gap-3 text-center px-4">
+            <div className="p-3 rounded-full" style={{ background: "rgba(81,151,85,0.12)" }}>
+              <Upload size={22} style={{ color: "var(--forest)" }} />
             </div>
             <div>
-              <p className="text-sm text-gray-300">
+              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                 Drop image here or{" "}
-                <span className="text-indigo-400 font-medium underline underline-offset-2">
+                <span style={{ color: "var(--forest)", fontWeight: 500, textDecoration: "underline" }}>
                   browse
                 </span>
               </p>
-              <p className="text-xs text-gray-500 mt-1">{hint}</p>
+              <p style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>{hint}</p>
             </div>
           </div>
         )}
       </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={onInputChange}
-      />
+      <input ref={inputRef} type="file" accept="image/*" className="hidden"
+             onChange={(e) => handleFile(e.target.files[0])} />
     </div>
   );
 }

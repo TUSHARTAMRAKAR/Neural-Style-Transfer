@@ -1,45 +1,31 @@
-/**
- * StyleGallery.jsx
- * Shows preset art styles as selectable cards.
- * User can pick a preset OR skip to upload their own style image.
- */
-
 import { Palette } from "lucide-react";
 
-// Fallback colors per preset (shown when thumbnail not available)
 const PRESET_COLORS = {
-  starry_night: "from-blue-900 to-yellow-700",
-  the_scream:   "from-orange-800 to-blue-900",
-  kandinsky:    "from-red-700 to-yellow-600",
-  mosaic:       "from-amber-800 to-stone-700",
-  wave:         "from-blue-700 to-white/20",
-  udnie:        "from-green-900 to-amber-800",
+  starry_night: "linear-gradient(135deg, #1a237e, #fbc02d)",
+  the_scream:   "linear-gradient(135deg, #e65100, #1565c0)",
+  kandinsky:    "linear-gradient(135deg, #b71c1c, #f9a825)",
+  mosaic:       "linear-gradient(135deg, #4e342e, #a1887f)",
+  wave:         "linear-gradient(135deg, #0277bd, #e0f7fa)",
+  udnie:        "linear-gradient(135deg, #2e7d32, #a1887f)",
 };
 
-// Emoji fallback icons per preset
 const PRESET_ICONS = {
-  starry_night: "🌌",
-  the_scream:   "😱",
-  kandinsky:    "🔺",
-  mosaic:       "🔲",
-  wave:         "🌊",
-  udnie:        "🎨",
+  starry_night: "🌌", the_scream: "😱", kandinsky: "🔺",
+  mosaic: "🔲", wave: "🌊", udnie: "🎨",
 };
 
 export default function StyleGallery({ presets, selected, onSelect }) {
-  if (!presets || presets.length === 0) {
-    return (
-      <div className="text-center py-6 text-gray-500 text-sm">
-        Loading styles...
-      </div>
-    );
-  }
+  if (!presets || presets.length === 0) return (
+    <div style={{ textAlign: "center", padding: "24px", color: "var(--text-tertiary)", fontSize: 13 }}>
+      Loading styles...
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <Palette size={16} className="text-purple-400" />
-        <span className="text-sm font-medium text-gray-300">
+        <Palette size={14} style={{ color: "var(--mauve-dark)" }} />
+        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>
           Choose an art style
         </span>
       </div>
@@ -47,24 +33,20 @@ export default function StyleGallery({ presets, selected, onSelect }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {presets.map((preset) => {
           const isSelected = selected?.key === preset.key;
-          const gradientClass = PRESET_COLORS[preset.key] || "from-gray-800 to-gray-700";
-          const icon = PRESET_ICONS[preset.key] || "🎨";
-
           return (
             <button
               key={preset.key}
               onClick={() => onSelect(isSelected ? null : preset)}
-              className={`
-                relative rounded-xl overflow-hidden transition-all duration-200 text-left group
-                border-2 focus:outline-none
-                ${isSelected
-                  ? "border-indigo-500 ring-2 ring-indigo-500/30 scale-[1.02]"
-                  : "border-white/10 hover:border-white/25 hover:scale-[1.01]"
-                }
-              `}
+              className="relative rounded-2xl overflow-hidden text-left transition-all duration-200"
+              style={{
+                border:     `2px solid ${isSelected ? "var(--forest)" : "var(--border)"}`,
+                transform:  isSelected ? "scale(1.03)" : "scale(1)",
+                boxShadow:  isSelected ? "0 4px 16px rgba(81,151,85,0.25)" : "none",
+              }}
             >
-              {/* Thumbnail or gradient fallback */}
-              <div className={`h-20 bg-gradient-to-br ${gradientClass} flex items-center justify-center relative`}>
+              {/* Thumbnail */}
+              <div className="relative h-20 flex items-center justify-center"
+                   style={{ background: PRESET_COLORS[preset.key] }}>
                 {preset.thumbnail ? (
                   <img
                     src={`/style_images/${preset.key}.jpg`}
@@ -73,14 +55,17 @@ export default function StyleGallery({ presets, selected, onSelect }) {
                     onError={(e) => { e.target.style.display = "none"; }}
                   />
                 ) : (
-                  <span className="text-3xl">{icon}</span>
+                  <span style={{ fontSize: 28 }}>{PRESET_ICONS[preset.key] || "🎨"}</span>
                 )}
 
-                {/* Selected overlay */}
+                {/* Selected checkmark */}
                 {isSelected && (
-                  <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
-                    <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <div className="absolute inset-0 flex items-center justify-center"
+                       style={{ background: "rgba(81,151,85,0.2)" }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                         style={{ background: "var(--forest)" }}>
+                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24"
+                           stroke="white" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -89,9 +74,11 @@ export default function StyleGallery({ presets, selected, onSelect }) {
               </div>
 
               {/* Info */}
-              <div className="p-2 bg-gray-900/80">
-                <p className="text-xs font-medium text-gray-200 truncate">{preset.name}</p>
-                <p className="text-[10px] text-gray-500 truncate">{preset.artist}</p>
+              <div className="p-2" style={{ background: "var(--bg-surface)" }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}
+                   className="truncate">{preset.name}</p>
+                <p style={{ fontSize: 10, color: "var(--text-tertiary)" }}
+                   className="truncate">{preset.artist}</p>
               </div>
             </button>
           );
@@ -99,9 +86,14 @@ export default function StyleGallery({ presets, selected, onSelect }) {
       </div>
 
       {selected && (
-        <p className="text-xs text-indigo-300 bg-indigo-950/50 border border-indigo-800/40 rounded-lg px-3 py-2">
-          Selected: <span className="font-medium">{selected.name}</span> by {selected.artist}
-          <span className="text-gray-400"> — {selected.description}</span>
+        <p style={{
+          fontSize: 11, color: "var(--forest-dark)",
+          background: "rgba(168,220,171,0.15)",
+          border: "1px solid rgba(81,151,85,0.25)",
+          borderRadius: 10, padding: "8px 12px", lineHeight: 1.6,
+        }}>
+          <strong>{selected.name}</strong> by {selected.artist}
+          <span style={{ color: "var(--text-tertiary)" }}> — {selected.description}</span>
         </p>
       )}
     </div>
